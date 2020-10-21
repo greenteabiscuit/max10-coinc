@@ -164,7 +164,7 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		if(adcounter==41) begin  emem[adrs]<=(db/4);  end	
 		if(adcounter==100) begin adcounter<=0; adrs<=adrs+1; da<=0; db<=0; end
 	end
-	else if(lx1==lstat) begin
+	else if(lx1==6) begin
 		lstat <= 6;
 		renew<=0;
 		renew0<=0;
