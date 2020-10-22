@@ -3,11 +3,11 @@
 // NEW VERSION // WR/RD mode with flow control
 //
 
-module CIRS (CLK, CLK1, STAT,RD,WR,USBX,RXF,TXE,ADA0,ADB0,SDOUT0,
+module CIRS (CLK, CLK1, STAT,RD,WR,USBX,RXF,TXE,SDOUT0,
 SDOUT1,SCLK0,SCLK1,ADCLK0,ADCLK1,PD0,PD1,CS0,CS1,BUSYAD0,BUSYAD1,
 RESAD0,RESAD1,FT600OE,BE0,BE1,CRD,COE,CWR,CRXF,CTXE,CCLK,DMONITOR);
 
-input ADA0,ADB0; // AD7643
+//input ADA0,ADB0; // AD7643, where do we use ADA0 and ADB0?
 output RESAD0,RESAD1;
 
 input SDOUT0,SDOUT1;
@@ -151,9 +151,9 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 	else if(lx1==5) begin // ADC start
 		// also in AD conversion, line 305 of visual studio, onmcamemoryread
 		lstat<=lx1;
-		renew<=0;
-		adcounter<=adcounter+1;
-		if(adcounter==0) begin adc<=0; end
+		renew<=0; //renew: a register, not connected to external
+		adcounter<=adcounter+1; //adcounter: a register, not connected to external
+		if(adcounter==0) begin adc<=0; end //adc, connected to ADCLK0 and ADCLK1
 		if(adcounter>2 && adcounter<40) begin
 			adc<=1; sclk<=1-sclk;	// 18 SCLK mean 18 bit readout 
 			if(sclk==0) begin
@@ -163,7 +163,7 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		if(adcounter==40) begin  dmem[adrs]<=(da/4);  lstat<=da; end	
 		if(adcounter==41) begin  emem[adrs]<=(db/4);  end	
 		if(adcounter==100) begin adcounter<=0; adrs<=adrs+1; da<=0; db<=0; end
-	end
+	end // end of lx1 5
 	else if(lx1==6) begin
 		lstat <= 6;
 		renew<=0;
@@ -194,7 +194,7 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		//lstat<=15; // during transfer
 		lstat <= 14;
 
-	end // end of lx1 5
+	end
 	else begin cnt<=cnt+1;end
 
 end
