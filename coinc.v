@@ -183,10 +183,12 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 				begin
 					adcs0 <= 1;
 					adcnvst0 <= 1;
-					adsclk0 <= 1;
 					ad_cnt <= ad_cnt + 1;
 				end
 			1:
+				// pull down cnvst0
+				// after pulling down cnvst0, busy should be pulled up (after t3 second delay)
+				// BUSY will stay high for maximum 2.84 micro seconds
 				begin
 					adcnvst0 <= 0;
 					ad_cnt <= ad_cnt + 1;
@@ -211,18 +213,9 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 				end
 			6:
 				begin
-					adsclk0 <= 0;
 					ad_cnt <= ad_cnt + 1;
 				end
 			7:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			8:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			9:
 				begin
 					ad_cnt <= ad_cnt + 1;
 				end
