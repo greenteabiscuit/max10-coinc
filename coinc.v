@@ -80,6 +80,10 @@ reg cs,pd;
 reg [6:0] adcounter;
 reg sclk,sdo0,sdo1,busy0,busy1;
 reg [17:0] da,db;
+reg [17:0] ad_cnt;
+reg adcs0;
+reg adcnvst0;
+reg adsclk0;
 
 // USB command -> LX1
 
@@ -143,7 +147,7 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		end
 	end
 	else if(lx1==2) begin //lx1 2: pointer clear, line 286 of visual studio, onmcapointerclear
-		lstat<=2;
+		lstat<=lx1;
 		renew<=0;
 		adrs<=0;
 		cntmask<=0; 
@@ -172,21 +176,75 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 	else if(lx1==5) begin // ADC start
 		// also in AD conversion, line 305 of visual studio, onmcamemoryread
 		lstat<=lx1;
-		renew<=0; //renew: a register, not connected to external
-		adcounter<=adcounter+1; //adcounter: a register, not connected to external
-		if(adcounter==0) begin adc<=0; end //adc, connected to ADBUSY0 and SDIN0
-		if(adcounter>2 && adcounter<40) begin
-			adc<=1; sclk<=1-sclk;	// 18 SCLK mean 18 bit readout 
-			if(sclk==0) begin
-				da<=da*2+ADSDOUT0; db<=db*2+ADSDOUT1;
-			end
-		end
-		if(adcounter==40) begin  dmem[adrs]<=(da/4);  lstat<=da; end	
-		if(adcounter==41) begin  emem[adrs]<=(db/4);  end	
-		if(adcounter==100) begin adcounter<=0; adrs<=adrs+1; da<=0; db<=0; end
+		ad_cnt <= 0;
+
+		case (ad_cnt)
+			0:
+				begin
+					adcs0 <= 1;
+					adcnvst0 <= 1;
+					adsclk0 <= 1;
+					ad_cnt <= ad_cnt + 1;
+				end
+			1:
+				begin
+					adcnvst0 <= 0;
+					ad_cnt <= ad_cnt + 1;
+				end
+			2:
+				begin
+					ad_cnt <= ad_cnt + 1;
+				end
+			3:
+				begin
+					adcnvst0 <= 1;
+					ad_cnt <= ad_cnt + 1;
+				end
+			4:
+				begin
+					ad_cnt <= ad_cnt + 1;
+				end
+			5:
+				begin
+					adcs0 <= 0;
+					ad_cnt <= ad_cnt + 1;
+				end
+			6:
+				begin
+					adsclk0 <= 0;
+					ad_cnt <= ad_cnt + 1;
+				end
+			7:
+				begin
+					ad_cnt <= ad_cnt + 1;
+				end
+			8:
+				begin
+					ad_cnt <= ad_cnt + 1;
+				end
+			9:
+				begin
+					ad_cnt <= ad_cnt + 1;
+				end
+			10:
+				begin
+					da<=500+ADSDOUT0;
+					adsclk0 <= 0;
+					ad_cnt <= ad_cnt + 1;
+				end
+			11:
+				begin
+					adsclk0 <= 0;
+					ad_cnt <= ad_cnt + 1;
+					dmem[adrs]<=(da/4);  lstat<=da;
+					//dmem[adrs] <= 300;
+					adrs <= adrs + 1;
+				end
+		endcase
+		//adc<=1; sclk<=1-sclk;	// 18 SCLK mean 18 bit readout
 	end // end of lx1 5
 	else if(lx1==6) begin
-		lstat <= 6;
+		lstat <= lx1;
 		renew<=0;
 		renew0<=0;
 		be0<=1;
@@ -222,7 +280,7 @@ end
 else if (TXE==0) begin
 	cntmask<=5;		// GET trigger signal for read
 	ocbe<=0;
-	if(cnt2==3) begin wr0<=0; cnt2<=cnt2+1; lstat<=3; end
+	if(cnt2==3) begin wr0<=0; cnt2<=cnt2+1; lstat<=7; end //ここたぶん転送
 	else if (cnt2==65535) begin
 		//default transfer number 
 		wr0<=1; dox<=dmem[adrs]; renew<=0; cnt2<=0; cntmask<=0; ocbe<=1; lstat<=4;
@@ -233,7 +291,7 @@ else if (TXE==0) begin
 	else begin
 		cnt2<=cnt2+1;
 	end
-end // end of TXE:0
+end // end of TXE
 
 else if (TXE==1) begin
 end
@@ -264,12 +322,15 @@ assign CTXE=ctxe;
 assign COE=coe;
 assign DMONITOR = dmonitor;
 assign CCLK=cclk;
-assign ADCS0=cs;
 assign CS1=cs;
 assign PD0=pd;
 assign PD1=pd;
 assign SCLK0=sclk;
 assign SCLK1=sclk;
+
+assign ADCS0 = adcs0;
+assign ADCNVST0 = adcnvst0;
+assign ADSCLK0 = adsclk0;
 
 endmodule
 
