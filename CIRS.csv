@@ -1,0 +1,95 @@
+# Copyright (C) 2017  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel MegaCore Function License Agreement, or other 
+# applicable license agreement, including, without limitation, 
+# that your use is for the sole purpose of programming logic 
+# devices manufactured by Intel and sold by Intel or its 
+# authorized distributors.  Please refer to the applicable 
+# agreement for further details.
+
+# Quartus Prime Version 17.0.0 Build 595 04/25/2017 SJ Lite Edition
+# File: C:\Users\Reishi Mitani\Documents\MAX10FT600CIS3\output_files\CIRS.csv
+# Generated on: Fri Oct 23 18:09:01 2020
+
+# Note: The column header names should not be changed if you wish to import this .csv file into the Quartus Prime software.
+
+To,Direction,Location,I/O Bank,VREF Group,Fitter Location,I/O Standard,Reserved,Current Strength,Slew Rate,Differential Pair,Strict Preservation
+ADBUSY0,Input,PIN_38,3,B3_N0,PIN_38,2.5 V,,,,,
+ADBUSY1,Input,,,,PIN_135,,,,,,
+ADCNVST0,Output,PIN_32,2,B2_N0,PIN_32,2.5 V,,,,,
+ADCNVST1,Output,PIN_53,3,B3_N0,PIN_53,2.5 V,,,,,
+ADCS0,Output,PIN_33,2,B2_N0,PIN_33,2.5 V,,,,,
+ADCS1,Output,PIN_58,4,B4_N0,PIN_58,2.5 V,,,,,
+ADPD0,Output,PIN_29,2,B2_N0,PIN_29,2.5 V,,,,,
+ADPD1,Output,PIN_44,3,B3_N0,PIN_44,2.5 V,,,,,
+ADRESET0,Output,PIN_30,2,B2_N0,PIN_30,2.5 V,,,,,
+ADRESET1,Output,PIN_55,3,B3_N0,PIN_55,2.5 V,,,,,
+ADSCLK0,Bidir,,,,PIN_63,,,,,,
+ADSCLK1,Bidir,,,,PIN_60,,,,,,
+ADSDIN0,Bidir,,,,PIN_14,,,,,,
+ADSDIN1,Bidir,,,,PIN_125,,,,,,
+ADSDOUT0,Input,,,,PIN_116,,,,,,
+ADSDOUT1,Input,,,,PIN_52,,,,,,
+ADSYNC0,Input,PIN_46,3,B3_N0,PIN_46,2.5 V,,,,,
+ADSYNC1,Input,PIN_66,4,B4_N0,PIN_66,2.5 V,,,,,
+BE0,Bidir,PIN_89,6,B6_N0,PIN_89,2.5 V,,,,,
+BE1,Bidir,PIN_88,6,B6_N0,PIN_88,2.5 V,,,,,
+CCLK,Output,PIN_70,4,B4_N0,PIN_70,2.5 V,,,,,
+CLK,Input,PIN_96,6,B6_N0,PIN_96,2.5 V,,,,,
+CLK1,Input,PIN_119,7,B7_N0,PIN_119,2.5 V,,,,,
+COE,Output,PIN_69,4,B4_N0,PIN_69,2.5 V,,,,,
+CRXF,Output,PIN_99,6,B6_N0,PIN_99,2.5 V,,,,,
+CTXE,Output,PIN_93,6,B6_N0,PIN_93,2.5 V,,,,,
+CWR,Output,PIN_92,6,B6_N0,PIN_92,2.5 V,,,,,
+DMONITOR[7],Output,PIN_80,5,B5_N0,PIN_80,2.5 V,,,,,
+DMONITOR[6],Output,PIN_81,5,B5_N0,PIN_81,2.5 V,,,,,
+DMONITOR[5],Output,PIN_82,5,B5_N0,PIN_82,2.5 V,,,,,
+DMONITOR[4],Output,PIN_83,5,B5_N0,PIN_83,2.5 V,,,,,
+DMONITOR[3],Output,PIN_84,5,B5_N0,PIN_84,2.5 V,,,,,
+DMONITOR[2],Output,PIN_85,5,B5_N0,PIN_85,2.5 V,,,,,
+DMONITOR[1],Output,PIN_86,5,B5_N0,PIN_86,2.5 V,,,,,
+DMONITOR[0],Output,PIN_87,5,B5_N0,PIN_87,2.5 V,,,,,
+FT600OE,Output,PIN_98,6,B6_N0,PIN_98,2.5 V,,,,,
+RD,Output,PIN_101,6,B6_N0,PIN_101,2.5 V,,,,,
+RESAD0,Output,PIN_40,3,B3_N0,PIN_40,2.5 V,,,,,
+RESAD1,Output,,,,PIN_49,,,,,,
+RXF,Input,PIN_90,6,B6_N0,PIN_90,2.5 V,,,,,
+STAT[7],Output,PIN_28,2,B2_N0,PIN_28,2.5 V,,,,,
+STAT[6],Output,PIN_27,2,B2_N0,PIN_27,2.5 V,,,,,
+STAT[5],Output,PIN_26,2,B2_N0,PIN_26,2.5 V,,,,,
+STAT[4],Output,PIN_25,2,B2_N0,PIN_25,2.5 V,,,,,
+STAT[3],Output,PIN_23,1B,B1_N0,PIN_23,2.5 V,,,,,
+STAT[2],Output,PIN_22,1B,B1_N0,PIN_22,2.5 V,,,,,
+STAT[1],Output,PIN_21,1B,B1_N0,PIN_21,2.5 V,,,,,
+STAT[0],Output,PIN_20,1B,B1_N0,PIN_20,2.5 V,,,,,
+TXE,Input,PIN_91,6,B6_N0,PIN_91,2.5 V,,,,,
+USBX[15],Bidir,PIN_105,6,B6_N0,PIN_105,2.5 V,,,,,
+USBX[14],Bidir,PIN_106,6,B6_N0,PIN_106,2.5 V,,,,,
+USBX[13],Bidir,PIN_110,7,B7_N0,PIN_110,2.5 V,,,,,
+USBX[12],Bidir,PIN_111,7,B7_N0,PIN_111,2.5 V,,,,,
+USBX[11],Bidir,PIN_117,7,B7_N0,PIN_117,2.5 V,,,,,
+USBX[10],Bidir,PIN_100,6,B6_N0,PIN_100,2.5 V,,,,,
+USBX[9],Bidir,PIN_118,7,B7_N0,PIN_118,2.5 V,,,,,
+USBX[8],Bidir,PIN_120,7,B7_N0,PIN_120,2.5 V,,,,,
+USBX[7],Bidir,PIN_123,8,B8_N0,PIN_123,2.5 V,,,,,
+USBX[6],Bidir,PIN_127,8,B8_N0,PIN_127,2.5 V,,,,,
+USBX[5],Bidir,PIN_129,8,B8_N0,PIN_129,2.5 V,,,,,
+USBX[4],Bidir,PIN_131,8,B8_N0,PIN_131,2.5 V,,,,,
+USBX[3],Bidir,PIN_132,8,B8_N0,PIN_132,2.5 V,,,,,
+USBX[2],Bidir,PIN_133,8,B8_N0,PIN_133,2.5 V,,,,,
+USBX[1],Bidir,PIN_140,8,B8_N0,PIN_140,2.5 V,,,,,
+USBX[0],Bidir,PIN_141,8,B8_N0,PIN_141,2.5 V,,,,,
+WR,Output,PIN_102,6,B6_N0,PIN_102,2.5 V,,,,,
+PD1,Unknown,PIN_52,3,B3_N0,,,,,,,
+BUSYAD0,Unknown,PIN_42,3,B3_N0,,,,,,,
+SCLK0,Unknown,PIN_49,3,B3_N0,,,,,,,
+SCLK1,Unknown,PIN_74,5,B5_N0,,,,,,,
+SDOUT0,Unknown,PIN_50,3,B3_N0,,,,,,,
+SDOUT1,Unknown,PIN_75,5,B5_N0,,,,,,,
+SDIN0,Unknown,PIN_51,3,B3_N0,,,,,,,
