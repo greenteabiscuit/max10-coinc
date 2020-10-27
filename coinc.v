@@ -62,6 +62,7 @@ reg adc,resad,rdad,chn;
 reg [7:0] lx1,init;
 reg [7:0] lstat,lstat1;
 reg [17:0] waved; // waveform data
+reg [20:0] overall_dat;
 reg renew,renew0; // internal flag
 reg busyad; // AD7643 busy
 reg ocbe; // BE0-1 enable // 
@@ -85,6 +86,7 @@ reg adcs0;
 reg adcnvst0;
 reg adsclk0;
 
+reg [7:0] loopcounter;
 // USB command -> LX1
 
 always @(negedge CLK1) begin
@@ -219,20 +221,60 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 				begin
 					ad_cnt <= ad_cnt + 1;
 				end
+			8:
+				begin
+					if (ADSYNC0 == 0) begin
+						// no difference
+						ad_cnt <= ad_cnt + 0;
+					end
+					if (ADSYNC0 == 1) begin
+						// if ADSYNC0 is 1, then increment adcnt and go to 11
+						ad_cnt <= ad_cnt + 1;
+					end
+				end
+			9:
+				begin
+					loopcounter <= loopcounter + 1;
+					adsclk0 <= 1 - adsclk0;
+					// if looped 40 times increment adcnt
+					if (loopcounter > 40) begin
+						ad_cnt <= ad_cnt + 1;
+						loopcounter <= 0;
+					end
+					// if ad clock is high
+					if (adsclk0 == 1) begin
+						overall_dat <= overall_dat * 2 + ADSDOUT0;
+					end
+				end
 			10:
 				begin
-					da<=500+ADSDOUT0;
-					adsclk0 <= 0;
+					// transfer data to dmem
+					dmem[adrs] <= 600 + overall_dat/4;
+					adrs <= adrs + 1;
 					ad_cnt <= ad_cnt + 1;
 				end
 			11:
 				begin
-					adsclk0 <= 0;
 					ad_cnt <= ad_cnt + 1;
-					dmem[adrs]<=(da/4);  lstat<=da;
-					//dmem[adrs] <= 300;
-					adrs <= adrs + 1;
 				end
+			12:
+				begin
+					ad_cnt <= 0;
+				end
+			//10:
+			//	begin
+			//		da<=500+ADSDOUT0;
+			//		adsclk0 <= 0;
+			//		ad_cnt <= ad_cnt + 1;
+			//	end
+			//11:
+			//	begin
+			//		adsclk0 <= 0;
+			//		ad_cnt <= ad_cnt + 1;
+			//		dmem[adrs]<=(da/4);  lstat<=da;
+			//		//dmem[adrs] <= 300;
+			//		adrs <= adrs + 1;
+			//	end
 		endcase
 		//adc<=1; sclk<=1-sclk;	// 18 SCLK mean 18 bit readout
 	end // end of lx1 5
