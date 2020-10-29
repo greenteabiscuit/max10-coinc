@@ -195,11 +195,11 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		if (adcounter==8) begin adcnvst0 <= 1; end
 
 		if (ADSYNC0==1) begin
-			if (adsclk0==1) begin overall_dat <= ADSDOUT0 * 2 + overall_dat; end
+			if (adsclk0==0) begin overall_dat <= ADSDOUT0 * 2 + overall_dat; end
 		end
 
 		// adcounter 90ぐらいで終わるかな
-		if (adcounter==90) begin dmem[adrs] <= 600 + overall_dat / 4; end
+		if (adcounter==90) begin dmem[adrs] <= 600 + overall_dat; end
 		if (adcounter==100) begin adcounter <= 0; adrs <= adrs + 1; adcnvst0 <= 1; overall_dat <= 0; end
 
 	end
