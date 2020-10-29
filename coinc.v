@@ -241,18 +241,18 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		if (adcounter==8) begin adcnvst0 <= 1; end
 
 		if (ADSYNC0==1) begin
-			lstat <= 3;
-			adloopcounter <= adloopcounter + 1;
-			if (adloopcounter==2000000000) begin lx1 <= 0; adloopcounter<=0; end
-
-			if (ADSCLK0==1) begin
-				if (ADBUSY0==1) begin
-					adcounter <= 0;
-				end
+			if (ADBUSY0==1) begin
+			//if (ADSCLK0==1) begin
+				lstat <= 3;
+				adloopcounter <= adloopcounter + 1;
+				if (adloopcounter==2000000000) begin lx1 <= 0; adloopcounter<=0; end
+				//if (ADBUSY0==1) begin
+				//	adcounter <= 0;
+				//end
 			end
-		end
-		else begin
-			lstat <= 1;
+			else begin
+				lstat <= 1;
+			end
 		end
 	end
 	else begin cnt<=cnt+1;end
