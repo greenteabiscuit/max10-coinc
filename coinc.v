@@ -62,6 +62,7 @@ reg adc,resad,rdad,chn;
 reg [7:0] lx1,init;
 reg [7:0] lstat,lstat1;
 reg [17:0] waved; // waveform data
+reg [20:0] overall_dat;
 reg renew,renew0; // internal flag
 reg busyad; // AD7643 busy
 reg ocbe; // BE0-1 enable // 
@@ -77,14 +78,17 @@ reg [15:0] dmem [0:32767];
 reg [15:0] emem [0:32767];
 reg cs,pd;
 //AD7643 serial slave mode readout
-reg [6:0] adcounter;
+reg [8:0] adcounter;
+reg [31:0] adloopcounter;
 reg sclk,sdo0,sdo1,busy0,busy1;
 reg [17:0] da,db;
 reg [17:0] ad_cnt;
 reg adcs0;
 reg adcnvst0;
 reg adsclk0;
+reg [7:0] adclkdig;
 
+reg [7:0] loopcounter;
 // USB command -> LX1
 
 always @(negedge CLK1) begin
@@ -159,7 +163,7 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		cnt<=0;
 		init<=12;
 		cnt<=0;
-		lstat<=128; // Initialization End
+		lstat<=15; // Initialization End
 		renew<=0;
 		renew0<=0;
 		cnt2<=0;
@@ -168,74 +172,40 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		adc<=1;
 		cs<=0;
 		pd<=0;
-		adcounter<=0;
 		da<=0;
 		db<=0;
 		resad<=0;
+
+		// for ADC start
+		adcounter<=0;
+		adcs0 <= 1;
+		adcnvst0 <= 1;
+		overall_dat <= 0;
+		adsclk0 <= 0;
+		adclkdig <= 0;
+		
 	end
 	else if(lx1==5) begin // ADC start
 		// also in AD conversion, line 305 of visual studio, onmcamemoryread
-		lstat<=lx1;
-		ad_cnt <= 0;
+		// 125 MHz is 8ns
+		adclkdig = 255 - adclkdig; //oscillate between 255 (11111111) and 0
+		adcounter <= adcounter + 1;
 
-		case (ad_cnt)
-			0:
-				begin
-					adcs0 <= 1;
-					adcnvst0 <= 1;
-					ad_cnt <= ad_cnt + 1;
-				end
-			1:
-				// pull down cnvst0
-				// after pulling down cnvst0, busy should be pulled up (after t3 second delay)
-				// BUSY will stay high for maximum 2.84 micro seconds
-				begin
-					adcnvst0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-				end
-			2:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			3:
-				begin
-					adcnvst0 <= 1;
-					ad_cnt <= ad_cnt + 1;
-				end
-			4:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			5:
-				begin
-					adcs0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-				end
-			6:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			7:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			10:
-				begin
-					da<=500+ADSDOUT0;
-					adsclk0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-				end
-			11:
-				begin
-					adsclk0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-					dmem[adrs]<=(da/4);  lstat<=da;
-					//dmem[adrs] <= 300;
-					adrs <= adrs + 1;
-				end
-		endcase
-		//adc<=1; sclk<=1-sclk;	// 18 SCLK mean 18 bit readout
-	end // end of lx1 5
+		if (adcounter%12==0) begin adsclk0 <= 1 - adsclk0; end
+		if (adcounter==0) begin adcs0 <= 0; end
+
+		if (adcounter==5) begin adcnvst0 <= 0; end
+		if (adcounter==8) begin adcnvst0 <= 1; end
+
+		if (ADSYNC0==1) begin
+			if (adsclk0==1) begin overall_dat <= ADSDOUT0 * 2 + overall_dat; end
+		end
+
+		// adcounter 90ぐらいで終わるかな
+		if (adcounter==110) begin dmem[adrs] <= 600 + overall_dat; end
+		if (adcounter==120) begin adcounter <= 0; adrs <= adrs + 1; adcnvst0 <= 1; overall_dat <= 0; end
+
+	end
 	else if(lx1==6) begin
 		lstat <= lx1;
 		renew<=0;
@@ -264,8 +234,27 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 	else if (lx1==3) begin
 		// probably OnMcaThreshold32777
 		//lstat<=15; // during transfer
-		lstat <= 14;
+		adcounter <= adcounter + 1;
 
+		if (adcounter==0) begin adcs0 <= 0; end
+
+		if (adcounter==5) begin adcnvst0 <= 0; end
+		if (adcounter==8) begin adcnvst0 <= 1; end
+
+		if (ADSYNC0==1) begin
+			if (ADBUSY0==1) begin
+			//if (ADSCLK0==1) begin
+				lstat <= 3;
+				adloopcounter <= adloopcounter + 1;
+				if (adloopcounter==2000000000) begin lx1 <= 0; adloopcounter<=0; end
+				//if (ADBUSY0==1) begin
+				//	adcounter <= 0;
+				//end
+			end
+			else begin
+				lstat <= 1;
+			end
+		end
 	end
 	else begin cnt<=cnt+1;end
 
@@ -313,7 +302,7 @@ assign CWR=cwr;
 assign CRXF=crxf;
 assign CTXE=ctxe;
 assign COE=coe;
-assign DMONITOR = dmonitor;
+assign DMONITOR = adclkdig; //sclk should appear on dmonitor
 assign CCLK=cclk;
 assign CS1=cs;
 assign PD0=pd;
