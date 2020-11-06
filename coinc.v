@@ -188,7 +188,9 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 	else if(lx1==5) begin // ADC start
 		// also in AD conversion, line 305 of visual studio, onmcamemoryread
 		// 125 MHz is 8ns
-		adclkdig = 255 - adclkdig; //oscillate between 255 (11111111) and 0
+		if (adcounter%12==0) begin
+			adclkdig = 255 - adclkdig; //oscillate between 255 (11111111) and 0
+		end
 		adcounter <= adcounter + 1;
 
 		if (adcounter%12==0) begin adsclk0 <= 1 - adsclk0; end
