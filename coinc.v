@@ -6,7 +6,7 @@
 module CIRS (CLK, CLK1, STAT,RD,WR,USBX,RXF,TXE,
 RESAD0,RESAD1,FT600OE,BE0,BE1,COE,CWR,CRXF,CTXE,CCLK,DMONITOR,
 ADCS0, ADCS1, ADRESET0, ADRESET1, ADPD0, ADPD1, ADCNVST0, ADCNVST1,
-ADSDOUT0, ADSDOUT1, ADBUSY0, ADBUSY1, ADSYNC0, ADSYNC1, ADSCLK0, ADSCLK1, ADSDIN0, ADSDIN1);
+ADSDOUT0, ADSDOUT1, ADBUSY0, ADBUSY1, ADSYNC0, ADSYNC1, ADSCLK0, ADSCLK1, ADSDIN0, ADSDIN1, ADINVSCLK0, ADRDCSDIN0);
 
 output RESAD0,RESAD1;
 
@@ -27,6 +27,7 @@ input ADSYNC0, ADSYNC1;
 inout ADSCLK0, ADSCLK1;
 inout ADSDIN0, ADSDIN1;
 
+inout ADINVSCLK0, ADRDCSDIN0;
 // ADC definition end
 
 // LED definition start
@@ -86,6 +87,8 @@ reg [17:0] ad_cnt;
 reg adcs0;
 reg adcnvst0;
 reg adsclk0;
+
+reg adsyncdig;
 reg [7:0] adclkdig;
 
 reg [7:0] loopcounter;
@@ -188,24 +191,31 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 	else if(lx1==5) begin // ADC start
 		// also in AD conversion, line 305 of visual studio, onmcamemoryread
 		// 125 MHz is 8ns
-		if (adcounter%12==0) begin
-			adclkdig = 255 - adclkdig; //oscillate between 255 (11111111) and 0
-		end
+		dmonitor[0] <= adcs0;
+		dmonitor[1] <= adcnvst0;
+		dmonitor[2] <= ADBUSY0;
+		dmonitor[3] <= ADSYNC0;
+		dmonitor[4] <= adsclk0;
+		dmonitor[5] <= ADSDOUT0;
+
 		adcounter <= adcounter + 1;
 
-		if (adcounter%12==0) begin adsclk0 <= 1 - adsclk0; end
-		if (adcounter==0) begin adcs0 <= 0; end
+		if (adcounter%3==0) begin adsclk0 <= 1 - adsclk0; end
 
+		if (adcounter==0) begin adcs0 <= 1; adcnvst0 <= 1; end
 		if (adcounter==5) begin adcnvst0 <= 0; end
 		if (adcounter==8) begin adcnvst0 <= 1; end
+		if (adcounter==15) begin adcs0 <= 0; end
 
 		if (ADSYNC0==1) begin
-			if (adsclk0==1) begin overall_dat <= ADSDOUT0 * 2 + overall_dat; end
+			if (adsclk0==1) begin
+				overall_dat <= ADSDOUT0 * 2 + overall_dat;
+			end
 		end
 
 		// adcounter 90ぐらいで終わるかな
 		if (adcounter==110) begin dmem[adrs] <= 600 + overall_dat; end
-		if (adcounter==120) begin adcounter <= 0; adrs <= adrs + 1; adcnvst0 <= 1; overall_dat <= 0; end
+		if (adcounter==119) begin adcounter <= 0; adrs <= adrs + 1; adcnvst0 <= 1; overall_dat <= 0; end
 
 	end
 	else if(lx1==6) begin
@@ -294,7 +304,7 @@ assign USBX = (1-wr0)?dox:16'bz;
 assign STAT = lstat;
 assign WR = wr0;
 assign RD = rd0;
-assign SDIN0 =adc;
+assign ADRDCSDIN0 = 0;
 assign RESAD0 = resad;
 assign RESAD1 =resad;
 assign BE0 = (1-ocbe)?be0:1'bz;
@@ -304,11 +314,11 @@ assign CWR=cwr;
 assign CRXF=crxf;
 assign CTXE=ctxe;
 assign COE=coe;
-assign DMONITOR = adclkdig; //sclk should appear on dmonitor
+assign DMONITOR = dmonitor; //sclk should appear on dmonitor
 assign CCLK=cclk;
 assign CS1=cs;
 assign PD0=pd;
-assign PD1=pd;
+assign ADINVSCLK0 = 0;
 assign SCLK0=sclk;
 assign SCLK1=sclk;
 
