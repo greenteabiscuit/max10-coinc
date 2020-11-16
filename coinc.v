@@ -6,7 +6,7 @@
 module CIRS (CLK, CLK1, STAT,RD,WR,USBX,RXF,TXE,
 RESAD0,RESAD1,FT600OE,BE0,BE1,COE,CWR,CRXF,CTXE,CCLK,DMONITOR,
 ADCS0, ADCS1, ADRESET0, ADRESET1, ADPD0, ADPD1, ADCNVST0, ADCNVST1,
-ADSDOUT0, ADSDOUT1, ADBUSY0, ADBUSY1, ADSYNC0, ADSYNC1, ADSCLK0, ADSCLK1, ADSDIN0, ADSDIN1);
+ADSDOUT0, ADSDOUT1, ADBUSY0, ADBUSY1, ADSYNC0, ADSYNC1, ADSCLK0, ADSCLK1, ADSDIN0, ADSDIN1, ADINVSCLK0, ADRDCSDIN0);
 
 output RESAD0,RESAD1;
 
@@ -27,6 +27,7 @@ input ADSYNC0, ADSYNC1;
 inout ADSCLK0, ADSCLK1;
 inout ADSDIN0, ADSDIN1;
 
+inout ADINVSCLK0, ADRDCSDIN0;
 // ADC definition end
 
 // LED definition start
@@ -62,6 +63,7 @@ reg adc,resad,rdad,chn;
 reg [7:0] lx1,init;
 reg [7:0] lstat,lstat1;
 reg [17:0] waved; // waveform data
+reg [20:0] overall_dat;
 reg renew,renew0; // internal flag
 reg busyad; // AD7643 busy
 reg ocbe; // BE0-1 enable // 
@@ -77,7 +79,8 @@ reg [15:0] dmem [0:32767];
 reg [15:0] emem [0:32767];
 reg cs,pd;
 //AD7643 serial slave mode readout
-reg [6:0] adcounter;
+reg [8:0] adcounter;
+reg [31:0] adloopcounter;
 reg sclk,sdo0,sdo1,busy0,busy1;
 reg [17:0] da,db;
 reg [17:0] ad_cnt;
@@ -85,6 +88,10 @@ reg adcs0;
 reg adcnvst0;
 reg adsclk0;
 
+reg adsyncdig;
+reg [7:0] adclkdig;
+
+reg [7:0] loopcounter;
 // USB command -> LX1
 
 always @(negedge CLK1) begin
@@ -159,7 +166,7 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		cnt<=0;
 		init<=12;
 		cnt<=0;
-		lstat<=128; // Initialization End
+		lstat<=15; // Initialization End
 		renew<=0;
 		renew0<=0;
 		cnt2<=0;
@@ -168,74 +175,53 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		adc<=1;
 		cs<=0;
 		pd<=0;
-		adcounter<=0;
 		da<=0;
 		db<=0;
 		resad<=0;
+
+		// for ADC start
+		adcounter<=0;
+		//adcs0 <= 1;
+		//adcnvst0 <= 1;
+		//overall_dat <= 0;
+		//adsclk0 <= 0;
+		adclkdig <= 0;
+		
 	end
 	else if(lx1==5) begin // ADC start
 		// also in AD conversion, line 305 of visual studio, onmcamemoryread
-		lstat<=lx1;
-		ad_cnt <= 0;
+		// 125 MHz is 8ns
+		dmonitor[0] <= adcs0;      //CS
+		dmonitor[1] <= adcnvst0;   //CNVST
+		dmonitor[2] <= ADBUSY0;    //BUSY
+		dmonitor[3] <= ADSYNC0;    //SYNC
+		dmonitor[4] <= adsclk0;    //SCLK
+		dmonitor[5] <= ADSDOUT0;   //SDOUT
+		dmonitor[6] <= cclk;			//MAX10 clock
 
-		case (ad_cnt)
-			0:
-				begin
-					adcs0 <= 1;
-					adcnvst0 <= 1;
-					ad_cnt <= ad_cnt + 1;
-				end
-			1:
-				// pull down cnvst0
-				// after pulling down cnvst0, busy should be pulled up (after t3 second delay)
-				// BUSY will stay high for maximum 2.84 micro seconds
-				begin
-					adcnvst0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-				end
-			2:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			3:
-				begin
-					adcnvst0 <= 1;
-					ad_cnt <= ad_cnt + 1;
-				end
-			4:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			5:
-				begin
-					adcs0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-				end
-			6:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			7:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			10:
-				begin
-					da<=500+ADSDOUT0;
-					adsclk0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-				end
-			11:
-				begin
-					adsclk0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-					dmem[adrs]<=(da/4);  lstat<=da;
-					//dmem[adrs] <= 300;
-					adrs <= adrs + 1;
-				end
-		endcase
-		//adc<=1; sclk<=1-sclk;	// 18 SCLK mean 18 bit readout
-	end // end of lx1 5
+		adcounter <= adcounter + 1;
+
+		if (adcounter%6==0) begin adsclk0 <= 1 - adsclk0; end
+
+		if (adcounter==0) begin adcs0 <= 1; adcnvst0 <= 1; end
+		if (adcounter==5) begin adcnvst0 <= 0; end
+		// FROM DATASHEET
+		// For optimal performance, the rising edge of CNVST should not occur
+		// after the maximum CNVST low time, t1 (70ns), or under the end of conversion
+		//if (adcounter==8) begin adcnvst0 <= 1; end
+		if (adcounter==15) begin adcs0 <= 0; end
+
+		//if (ADSYNC0==1) begin
+		if (adsclk0==1) begin
+			overall_dat <= ADSDOUT0 * 2 + overall_dat;
+		end
+		//end
+
+		// adcounter 90ぐらいで終わるかな
+		if (adcounter==110) begin dmem[adrs] <= 600 + overall_dat; end
+		if (adcounter==119) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
+
+	end
 	else if(lx1==6) begin
 		lstat <= lx1;
 		renew<=0;
@@ -264,8 +250,27 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 	else if (lx1==3) begin
 		// probably OnMcaThreshold32777
 		//lstat<=15; // during transfer
-		lstat <= 14;
+		adcounter <= adcounter + 1;
 
+		//if (adcounter==0) begin adcs0 <= 0; end
+
+		//if (adcounter==5) begin adcnvst0 <= 0; end
+		//if (adcounter==8) begin adcnvst0 <= 1; end
+
+		//if (ADSYNC0==1) begin
+		//	if (ADBUSY0==1) begin
+			//if (ADSCLK0==1) begin
+		//		lstat <= 3;
+		//		adloopcounter <= adloopcounter + 1;
+		//		if (adloopcounter==2000000000) begin lx1 <= 0; adloopcounter<=0; end
+				//if (ADBUSY0==1) begin
+				//	adcounter <= 0;
+				//end
+		//	end
+		//	else begin
+		//		lstat <= 1;
+		//	end
+		//end
 	end
 	else begin cnt<=cnt+1;end
 
@@ -303,7 +308,7 @@ assign USBX = (1-wr0)?dox:16'bz;
 assign STAT = lstat;
 assign WR = wr0;
 assign RD = rd0;
-assign SDIN0 =adc;
+assign ADRDCSDIN0 = 0;
 assign RESAD0 = resad;
 assign RESAD1 =resad;
 assign BE0 = (1-ocbe)?be0:1'bz;
@@ -313,11 +318,11 @@ assign CWR=cwr;
 assign CRXF=crxf;
 assign CTXE=ctxe;
 assign COE=coe;
-assign DMONITOR = dmonitor;
+assign DMONITOR = dmonitor; //sclk should appear on dmonitor
 assign CCLK=cclk;
 assign CS1=cs;
 assign PD0=pd;
-assign PD1=pd;
+assign ADINVSCLK0 = 0;
 assign SCLK0=sclk;
 assign SCLK1=sclk;
 
