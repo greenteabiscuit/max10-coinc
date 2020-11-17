@@ -79,7 +79,7 @@ reg [15:0] dmem [0:32767];
 reg [15:0] emem [0:32767];
 reg cs,pd;
 //AD7643 serial slave mode readout
-reg [8:0] adcounter;
+reg [10:0] adcounter; // 0 to 1024
 reg [31:0] adloopcounter;
 reg sclk,sdo0,sdo1,busy0,busy1;
 reg [17:0] da,db;
@@ -197,14 +197,17 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		dmonitor[3] <= ADSYNC0;    //SYNC
 		dmonitor[4] <= adsclk0;    //SCLK
 		dmonitor[5] <= ADSDOUT0;   //SDOUT
-		dmonitor[6] <= cclk;			//MAX10 clock
+		dmonitor[6] <= CLK1;			//MAX10 clock
+		dmonitor[7] <= cclk;
 
 		adcounter <= adcounter + 1;
 
-		if (adcounter%6==0) begin adsclk0 <= 1 - adsclk0; end
+		// seems like 1 clock = 10ns, according to oscillo
+		
+		if (adcounter%5==0) begin adsclk0 <= 1 - adsclk0; end
 
 		if (adcounter==0) begin adcs0 <= 1; adcnvst0 <= 1; end
-		if (adcounter==5) begin adcnvst0 <= 0; end
+		if (adcounter==5) begin adcnvst0 <= 0; end // from the oscilloscope, it seems like 1clk:10ns
 		// FROM DATASHEET
 		// For optimal performance, the rising edge of CNVST should not occur
 		// after the maximum CNVST low time, t1 (70ns), or under the end of conversion
@@ -219,7 +222,7 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 
 		// adcounter 90ぐらいで終わるかな
 		if (adcounter==110) begin dmem[adrs] <= 600 + overall_dat; end
-		if (adcounter==119) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
+		if (adcounter==290) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
 
 	end
 	else if(lx1==6) begin
