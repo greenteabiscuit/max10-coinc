@@ -83,7 +83,7 @@ reg [17:0] da,db;
 reg [17:0] ad_cnt;
 reg adcs0, adcnvst0, adsclk0, adreset0;
 
-reg adsyncdig;
+reg ad_serial_clk;
 reg [7:0] adclkdig;
 
 reg [7:0] loopcounter;
@@ -198,7 +198,7 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		dmonitor[0] <= adcs0;      //CS
 		dmonitor[1] <= adcnvst0;   //CNVST
 		dmonitor[2] <= ADBUSY0;    //BUSY
-		dmonitor[3] <= cclk;
+		dmonitor[3] <= ad_serial_clk;
 		dmonitor[4] <= ADSDOUT0;    //SCLK
 		dmonitor[5] <= ADRDERR0;   //SDOUT
 		// dmonitor can only be observed until the fifth.
@@ -206,14 +206,22 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 
 		adcounter <= adcounter + 1;
 
+		if (ADBUSY0==0) begin
+			ad_serial_clk <= 1 - ad_serial_clk;
+			if (ad_serial_clk==1) begin
+				overall_dat <= overall_dat + ADSDOUT0 * 2;
+			end
+		end
+
 		if (adcounter==0) begin adcs0 <= 1; adcnvst0 <= 1; end
 		if (adcounter==4) begin adcnvst0 <= 0; end // from the oscilloscope, it seems like 1clk:10ns
 		
 		
 		if (adcounter==15) begin adcs0 <= 0; end
-		if (adcounter==110) begin dmem[adrs] <= 600 + overall_dat; end
+		if (adcounter==220) begin dmem[adrs] <= 600 + overall_dat; end
 		//if (adcounter==289) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
-		if (adcounter==289) begin adcounter <= 289; end
+		// BUSY high is about 1300 ns, 1300 / 8 = 165
+		if (adcounter==250) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
 
 	end
 	else if(lx1==6) begin
@@ -297,7 +305,7 @@ assign PD0=pd;
 //assign ADRESET0 = 0;
 assign ADCS0 = adcs0;
 assign ADCNVST0 = adcnvst0;
-assign ADSCLK0 = cclk;
+assign ADSCLK0 = ad_serial_clk;
 
 endmodule
 
