@@ -4,11 +4,10 @@
 //
 
 module CIRS (CLK, CLK1, STAT,RD,WR,USBX,RXF,TXE,
-RESAD0,RESAD1,FT600OE,BE0,BE1,COE,CWR,CRXF,CTXE,CCLK,DMONITOR,
+FT600OE,BE0,BE1,COE,CWR,CRXF,CTXE,CCLK,DMONITOR,
 ADCS0, ADCS1, ADRESET0, ADRESET1, ADPD0, ADPD1, ADCNVST0, ADCNVST1,
-ADSDOUT0, ADSDOUT1, ADBUSY0, ADBUSY1, ADSYNC0, ADSYNC1, ADSCLK0, ADSCLK1, ADSDIN0, ADSDIN1);
-
-output RESAD0,RESAD1;
+ADSDOUT0, ADSDOUT1, ADBUSY0, ADBUSY1,
+ADSCLK0, ADSCLK1, ADRDERR0, ADRDERR1);
 
 
 input CLK, CLK1; // CLK1 = FT600 CLOCK
@@ -19,14 +18,11 @@ output ADCS0, ADCS1;
 output ADRESET0, ADRESET1;
 output ADPD0, ADPD1;
 output ADCNVST0, ADCNVST1;
+output ADSCLK0, ADSCLK1;
 
 input ADSDOUT0, ADSDOUT1;
 input ADBUSY0, ADBUSY1;
-input ADSYNC0, ADSYNC1;
-
-inout ADSCLK0, ADSCLK1;
-inout ADSDIN0, ADSDIN1;
-
+input ADRDERR0, ADRDERR1;
 // ADC definition end
 
 // LED definition start
@@ -48,6 +44,8 @@ inout [15:0] USBX;
 
 output [7:0] DMONITOR;
 
+// register definition start
+
 reg wall;
 
 reg [15:0] dix;
@@ -62,6 +60,7 @@ reg adc,resad,rdad,chn;
 reg [7:0] lx1,init;
 reg [7:0] lstat,lstat1;
 reg [17:0] waved; // waveform data
+reg [20:0] overall_dat;
 reg renew,renew0; // internal flag
 reg busyad; // AD7643 busy
 reg ocbe; // BE0-1 enable // 
@@ -77,17 +76,23 @@ reg [15:0] dmem [0:32767];
 reg [15:0] emem [0:32767];
 reg cs,pd;
 //AD7643 serial slave mode readout
-reg [6:0] adcounter;
+reg [10:0] adcounter; // 0 to 1024
+reg [31:0] adloopcounter;
 reg sclk,sdo0,sdo1,busy0,busy1;
 reg [17:0] da,db;
 reg [17:0] ad_cnt;
-reg adcs0;
-reg adcnvst0;
-reg adsclk0;
+reg adcs0, adcnvst0, adsclk0, adreset0;
 
+reg adsyncdig;
+reg [7:0] adclkdig;
+
+reg [7:0] loopcounter;
 // USB command -> LX1
 
-always @(negedge CLK1) begin
+
+
+always @(negedge CLK) begin
+//always @(negedge ADSCLK0) begin
 
 cclk<=1-cclk; 
 refresh<=refresh+1;
@@ -100,7 +105,7 @@ if (refresh==0) begin
 	cnt<=0;
 	init<=12;
 	cnt<=0;
-	lstat<=128; // Initialization End
+	lstat<=127; // Initialization End
 	renew<=0;
 	renew0<=0;
 	cnt2<=0;
@@ -122,17 +127,21 @@ coe<=oe;
 
 if (RXF==0 && cntmask==0) begin
 	// DATA to be read are in the FIFO (FT600)
-	oe<=0; cnt<=0;  dmonitor<=USBX; cntmask<=1;  crxf<=1;  lstat<=15;
+	oe<=0; cnt<=0; cntmask<=1;  crxf<=1;  lstat<=15;
+	//dmonitor<=USBX;
 end
 else if (cntmask==1) begin
-	rd0<=0; cntmask<=2;   coe<=1; dmonitor<=USBX; cnt<=cnt+1; lstat<=16;
+	rd0<=0; cntmask<=2;   coe<=1; cnt<=cnt+1; lstat<=16;
+	//dmonitor<=USBX;
 end
 else if (cntmask==2) begin
 	// DATA after 1st byte are ignored.
-	cnt<=cnt+1;  cntmask<=3; lx1<=USBX; dmonitor<=USBX; crd<=1;  lstat<=17;
+	cnt<=cnt+1;  cntmask<=3; lx1<=USBX; crd<=1;  lstat<=18;
+	//dmonitor<=USBX;
 end
 else if (cntmask==3) begin
-	rd0<=1; oe<=1; dmonitor<=USBX; crxf<=0; coe<=0; crd<=0; renew<=1; cnt1<=0; cntmask<=4;
+	rd0<=1; oe<=1; crxf<=0; coe<=0; crd<=0; renew<=1; cnt1<=0; cntmask<=4;
+	//dmonitor<=USBX;
 end
 else if (cntmask==4) begin	// Command Analysis and doing actions  
    if (lx1==1) begin	//lx1 1:memory clear, line 270 of visual studio, onmcamemoryclear
@@ -159,7 +168,7 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		cnt<=0;
 		init<=12;
 		cnt<=0;
-		lstat<=128; // Initialization End
+		lstat<=15; // Initialization End
 		renew<=0;
 		renew0<=0;
 		cnt2<=0;
@@ -168,74 +177,45 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		adc<=1;
 		cs<=0;
 		pd<=0;
-		adcounter<=0;
 		da<=0;
 		db<=0;
 		resad<=0;
+
+		// for ADC start
+		adcounter<=0;
+		//adcs0 <= 1;
+		adcnvst0 <= 0;
+		//dmonitor[1] <= 0;
+		//overall_dat <= 0;
+		//adsclk0 <= 0;
+		adclkdig <= 0;
+		//dmonitor <= 0;
+		
 	end
 	else if(lx1==5) begin // ADC start
 		// also in AD conversion, line 305 of visual studio, onmcamemoryread
-		lstat<=lx1;
-		ad_cnt <= 0;
+		// 125 MHz is 8ns
+		dmonitor[0] <= adcs0;      //CS
+		dmonitor[1] <= adcnvst0;   //CNVST
+		dmonitor[2] <= ADBUSY0;    //BUSY
+		dmonitor[3] <= cclk;
+		dmonitor[4] <= ADSDOUT0;    //SCLK
+		dmonitor[5] <= ADRDERR0;   //SDOUT
+		// dmonitor can only be observed until the fifth.
+		// connect dmonitor[6] to CLK.
 
-		case (ad_cnt)
-			0:
-				begin
-					adcs0 <= 1;
-					adcnvst0 <= 1;
-					ad_cnt <= ad_cnt + 1;
-				end
-			1:
-				// pull down cnvst0
-				// after pulling down cnvst0, busy should be pulled up (after t3 second delay)
-				// BUSY will stay high for maximum 2.84 micro seconds
-				begin
-					adcnvst0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-				end
-			2:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			3:
-				begin
-					adcnvst0 <= 1;
-					ad_cnt <= ad_cnt + 1;
-				end
-			4:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			5:
-				begin
-					adcs0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-				end
-			6:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			7:
-				begin
-					ad_cnt <= ad_cnt + 1;
-				end
-			10:
-				begin
-					da<=500+ADSDOUT0;
-					adsclk0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-				end
-			11:
-				begin
-					adsclk0 <= 0;
-					ad_cnt <= ad_cnt + 1;
-					dmem[adrs]<=(da/4);  lstat<=da;
-					//dmem[adrs] <= 300;
-					adrs <= adrs + 1;
-				end
-		endcase
-		//adc<=1; sclk<=1-sclk;	// 18 SCLK mean 18 bit readout
-	end // end of lx1 5
+		adcounter <= adcounter + 1;
+
+		if (adcounter==0) begin adcs0 <= 1; adcnvst0 <= 1; end
+		if (adcounter==4) begin adcnvst0 <= 0; end // from the oscilloscope, it seems like 1clk:10ns
+		
+		
+		if (adcounter==15) begin adcs0 <= 0; end
+		if (adcounter==110) begin dmem[adrs] <= 600 + overall_dat; end
+		//if (adcounter==289) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
+		if (adcounter==289) begin adcounter <= 289; end
+
+	end
 	else if(lx1==6) begin
 		lstat <= lx1;
 		renew<=0;
@@ -264,8 +244,7 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 	else if (lx1==3) begin
 		// probably OnMcaThreshold32777
 		//lstat<=15; // during transfer
-		lstat <= 14;
-
+		adcounter <= adcounter + 1;
 	end
 	else begin cnt<=cnt+1;end
 
@@ -289,23 +268,19 @@ end // end of TXE
 else if (TXE==1) begin
 end
 
-
-
 end // end of always negedge
 
-always @(posedge CLK) begin
+//always @(posedge CLK) begin
 // 8ns 125MHz clock
+//	sysclk <= 1 - sysclk;
 
-end
+//end
 
 assign USBX = (1-wr0)?dox:16'bz;
 
 assign STAT = lstat;
 assign WR = wr0;
 assign RD = rd0;
-assign SDIN0 =adc;
-assign RESAD0 = resad;
-assign RESAD1 =resad;
 assign BE0 = (1-ocbe)?be0:1'bz;
 assign BE1 = (1-ocbe)?be1:1'bz;
 assign FT600OE= oe;
@@ -313,17 +288,16 @@ assign CWR=cwr;
 assign CRXF=crxf;
 assign CTXE=ctxe;
 assign COE=coe;
-assign DMONITOR = dmonitor;
-assign CCLK=cclk;
+assign DMONITOR = dmonitor; //sclk should appear on dmonitor
+assign CCLK = cclk; // CCLK is the pin on the left of GND on the DIGITAL PORT
 assign CS1=cs;
 assign PD0=pd;
-assign PD1=pd;
-assign SCLK0=sclk;
-assign SCLK1=sclk;
 
+
+//assign ADRESET0 = 0;
 assign ADCS0 = adcs0;
 assign ADCNVST0 = adcnvst0;
-assign ADSCLK0 = adsclk0;
+assign ADSCLK0 = cclk;
 
 endmodule
 
