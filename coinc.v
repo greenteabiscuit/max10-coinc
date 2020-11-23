@@ -60,7 +60,7 @@ reg adc,resad,rdad,chn;
 reg [7:0] lx1,init;
 reg [7:0] lstat,lstat1;
 reg [17:0] waved; // waveform data
-reg [20:0] overall_dat;
+reg [20:0] overall_dat, dat_tmp;
 reg renew,renew0; // internal flag
 reg busyad; // AD7643 busy
 reg ocbe; // BE0-1 enable // 
@@ -76,7 +76,7 @@ reg [15:0] dmem [0:32767];
 reg [15:0] emem [0:32767];
 reg cs,pd;
 //AD7643 serial slave mode readout
-reg [10:0] adcounter; // 0 to 1024
+reg [10:0] adcounter, dat_digit; // 0 to 1024
 reg [31:0] adloopcounter;
 reg sclk,sdo0,sdo1,busy0,busy1;
 reg [17:0] da,db;
@@ -209,16 +209,19 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		if (ADBUSY0==0) begin
 			ad_serial_clk <= 1 - ad_serial_clk;
 			if (ad_serial_clk==1) begin
-				overall_dat <= overall_dat + ADSDOUT0 * 2;
+				dat_digit <= dat_digit + 1;
+				if (dat_digit<=10) begin
+					//dat_tmp <= overall_dat * 2;
+					overall_dat <= overall_dat * 2 + ADSDOUT0;
+				end
 			end
 		end
 
-		if (adcounter==0) begin adcs0 <= 1; adcnvst0 <= 1; end
+		if (adcounter==0) begin adcs0 <= 1; adcnvst0 <= 1; dat_digit <= 0; end
 		if (adcounter==4) begin adcnvst0 <= 0; end // from the oscilloscope, it seems like 1clk:10ns
 		
-		
-		if (adcounter==15) begin adcs0 <= 0; end
-		if (adcounter==220) begin dmem[adrs] <= 600 + overall_dat; end
+		if (adcounter==70) begin adcs0 <= 0; end
+		if (adcounter==220) begin dmem[adrs] <= overall_dat; end
 		//if (adcounter==289) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
 		// BUSY high is about 1300 ns, 1300 / 8 = 165
 		if (adcounter==250) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
