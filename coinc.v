@@ -49,7 +49,7 @@ output [7:0] DMONITOR;
 reg wall;
 
 reg [15:0] dix;
-reg [15:0] dox; // output data for USBX
+reg [15:0] dox; // output data for USBX, 16 bits = 2 bytes
 reg [12:0] cnt; 
 reg [12:0] cnt1,cnt2;
 reg [26:0] refresh;
@@ -87,6 +87,8 @@ reg [9:0] w0,w1,w2,w3,w4,w5,w6,w7,w8,w9;
 reg [23:0] wavg;
 
 reg [12:0] timer;
+reg [7:0] translen;
+reg can_transfer;
 
 reg ad_serial_clk;
 reg [7:0] adclkdig;
@@ -141,7 +143,7 @@ else if (cntmask==1) begin
 end
 else if (cntmask==2) begin
 	// DATA after 1st byte are ignored.
-	cnt<=cnt+1;  cntmask<=3; lx1<=USBX; crd<=1;  lstat<=18;
+	cnt<=cnt+1;  cntmask<=3; lx1<=USBX; crd<=1;  lstat<=19;
 	//dmonitor<=USBX;
 end
 else if (cntmask==3) begin
@@ -185,6 +187,8 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		da<=0;
 		db<=0;
 		resad<=0;
+		translen <= 0;
+		can_transfer = 1;
 
 		// for ADC start
 		adcounter<=0;
@@ -268,16 +272,22 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		//lstat<=15; // during transfer
 		adcounter <= adcounter + 1;
 	end
+	else if (lx1==10) begin
+		//set translen, in MCA this is 0xA
+		translen <= 128;
+		lstat <= 126;
+	end
 	else begin cnt<=cnt+1;end
 
 end
-else if (TXE==0) begin
+else if (TXE==0 && translen==0 && can_transfer) begin
 	cntmask<=5;		// GET trigger signal for read
 	ocbe<=0;
 	if(cnt2==3) begin wr0<=0; cnt2<=cnt2+1; lstat<=7; end //ここたぶん転送
 	else if (cnt2==65535) begin
 		//default transfer number 
 		wr0<=1; dox<=dmem[adrs]; renew<=0; cnt2<=0; cntmask<=0; ocbe<=1; lstat<=4;
+		
 	end
 	else if (cnt2>3 && cnt2<65535) begin
 		dox<=dmem[adrs]; adrs<=adrs+1; cnt2<=cnt2+1;
@@ -286,6 +296,24 @@ else if (TXE==0) begin
 		cnt2<=cnt2+1;
 	end
 end // end of TXE
+else if (TXE==0 && translen>0 && lx1==11) begin
+	lstat <= 11;
+	cntmask<=5;		// GET trigger signal for read
+	ocbe<=0;
+	if(cnt2==3) begin wr0<=0; cnt2<=cnt2+1; end //ここたぶん転送
+	else if (cnt2==4000) begin
+		//default transfer number 
+		wr0<=1; dox<=dmem[adrs]; renew<=0; cnt2<=0; cntmask<=0; ocbe<=1; lstat<=4;
+		
+	end
+	else if (cnt2>3 && cnt2<4000) begin
+		dox<=dmem[adrs]; adrs<=adrs+1; cnt2<=cnt2+1;
+	end
+	else begin
+		cnt2<=cnt2+1;
+		translen <= translen - 2;
+	end
+end
 
 else if (TXE==1) begin
 end
