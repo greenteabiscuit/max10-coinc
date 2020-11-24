@@ -105,7 +105,7 @@ if (refresh==0) begin
 	cnt<=0;
 	init<=12;
 	cnt<=0;
-	lstat<=127; // Initialization End
+	lstat<=255; // Initialization End
 	renew<=0;
 	renew0<=0;
 	cnt2<=0;
@@ -221,7 +221,7 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 		if (adcounter==4) begin adcnvst0 <= 0; end // from the oscilloscope, it seems like 1clk:10ns
 		
 		if (adcounter==70) begin adcs0 <= 0; end
-		if (adcounter==220) begin dmem[adrs] <= overall_dat; end
+		if (adcounter==220) begin dmem[adrs] <= overall_dat; lstat <= overall_dat / 4; end
 		//if (adcounter==289) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
 		// BUSY high is about 1300 ns, 1300 / 8 = 165
 		if (adcounter==250) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
