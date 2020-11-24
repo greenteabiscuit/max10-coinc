@@ -83,6 +83,11 @@ reg [17:0] da,db;
 reg [17:0] ad_cnt;
 reg adcs0, adcnvst0, adsclk0, adreset0;
 
+reg [9:0] w0,w1,w2,w3,w4,w5,w6,w7,w8,w9;
+reg [23:0] wavg;
+
+reg [12:0] timer;
+
 reg ad_serial_clk;
 reg [7:0] adclkdig;
 
@@ -91,7 +96,7 @@ reg [7:0] loopcounter;
 
 
 
-always @(negedge CLK) begin
+always @(negedge CLK) begin //CLK1 or CLK?
 //always @(negedge ADSCLK0) begin
 
 cclk<=1-cclk; 
@@ -210,18 +215,24 @@ else if (cntmask==4) begin	// Command Analysis and doing actions
 			ad_serial_clk <= 1 - ad_serial_clk;
 			if (ad_serial_clk==1) begin
 				dat_digit <= dat_digit + 1;
-				if (dat_digit<=10) begin
+				if ((dat_digit<=15) && (dat_digit>=5)) begin
 					//dat_tmp <= overall_dat * 2;
 					overall_dat <= overall_dat * 2 + ADSDOUT0;
 				end
 			end
 		end
-
+		
+		
 		if (adcounter==0) begin adcs0 <= 1; adcnvst0 <= 1; dat_digit <= 0; end
 		if (adcounter==4) begin adcnvst0 <= 0; end // from the oscilloscope, it seems like 1clk:10ns
 		
 		if (adcounter==70) begin adcs0 <= 0; end
-		if (adcounter==220) begin dmem[adrs] <= overall_dat; lstat <= overall_dat / 4; end
+		if (adcounter==210) begin
+			w8 <= w7; w7 <= w6; w6 <= w5; w5 <= w4; w4 <= w3; w3 <= w2; w2 <= w1; w1 <= w0;
+			w0 <= overall_dat / 4;
+		end
+		if (adcounter==215) begin wavg <= (w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7) / 8; end
+		if (adcounter==220) begin dmem[adrs] <= wavg; lstat <= wavg / 8; end
 		//if (adcounter==289) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
 		// BUSY high is about 1300 ns, 1300 / 8 = 165
 		if (adcounter==250) begin adcounter <= 0; adrs <= adrs + 1; overall_dat <= 0; end
